@@ -14,14 +14,20 @@ how <command>
 
 Tells you which package managers installed `<command>`.
 
+## Installation
+
+```sh
+cargo install --git https://github.com/danilofuchs/how.git
+```
+
 ## Supported package managers
 
 - `apt`
-<!-- - Linuxbrew
+- Linuxbrew
 - `npm -g`
-- `pip`
-- `snap`
-- `flatpak`
+  <!-- - `pip` -->
+  <!-- - `snap` -->
+  <!-- - `flatpak` -->
 - `cargo`
-- Bash aliases
-- Zsh aliases -->
+  <!-- - Bash aliases -->
+  <!-- - Zsh aliases -->
