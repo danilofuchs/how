@@ -1,8 +1,12 @@
 mod package_manager;
 mod package_managers {
     pub mod apt;
+    pub mod npm;
 }
+use std::process::exit;
+
 use crate::package_managers::apt::AptPackageManager;
+use crate::package_managers::npm::NpmPackageManager;
 use clap::Parser;
 use package_manager::PackageManager;
 
@@ -15,26 +19,50 @@ struct Args {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args: Args = Args::parse();
+    let command = &args.command;
 
     let package_managers: Vec<Box<dyn PackageManager>> = vec![
         Box::new(AptPackageManager) as Box<dyn PackageManager>,
+        Box::new(NpmPackageManager) as Box<dyn PackageManager>,
         // TODO: Add other package managers here
     ];
 
-    for package in package_managers {
-        match package.is_installed(&args.command) {
+    let which_output = std::process::Command::new("which")
+        .arg(command)
+        .output()
+        .expect("Failed to execute which command");
+
+    if !which_output.status.success() {
+        println!("Failed to find command {} in PATH", command);
+        exit(1)
+    }
+
+    let mut matches = 0;
+
+    // Match all package managers to see if the command is installed
+    for manager in package_managers {
+        match manager.is_installed(&args.command) {
             Ok(true) => {
-                println!("{} installed by {}", args.command, package.name());
-                return;
+                println!("{} installed by {}", args.command, manager.name());
+                matches += 1;
+                continue;
             }
             Ok(false) => {
                 continue;
             }
             Err(e) => {
-                eprintln!("Error: {}", e);
-                return;
+                eprintln!("{} Error: {}", manager.name(), e);
+                continue;
             }
         }
+    }
+
+    if matches == 0 {
+        eprintln!(
+            "Failed to find package that installed command {}",
+            args.command
+        );
+        exit(1)
     }
 }

@@ -8,15 +8,6 @@ impl PackageManager for AptPackageManager {
     }
 
     fn is_installed(&self, command: &str) -> Result<bool, String> {
-        let which_output = std::process::Command::new("which")
-            .arg(command)
-            .output()
-            .expect("Failed to execute which command");
-
-        if !which_output.status.success() {
-            return Err(format!("Failed to find command {} in PATH", command));
-        }
-
         let apt_output = std::process::Command::new("apt")
             .arg("list")
             .arg("--installed")
@@ -28,6 +19,7 @@ impl PackageManager for AptPackageManager {
             if output_str.lines().any(|line| line.starts_with(command)) {
                 return Ok(true);
             }
+            return Ok(false);
         }
 
         Err(format!(
