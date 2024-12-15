@@ -1,11 +1,13 @@
 mod package_manager;
 mod package_managers {
     pub mod apt;
+    pub mod brew;
     pub mod npm;
 }
 use std::process::exit;
 
 use crate::package_managers::apt::AptPackageManager;
+use crate::package_managers::brew::BrewPackageManager;
 use crate::package_managers::npm::NpmPackageManager;
 use clap::Parser;
 use package_manager::PackageManager;
@@ -25,6 +27,7 @@ fn main() {
     let package_managers: Vec<Box<dyn PackageManager>> = vec![
         Box::new(AptPackageManager) as Box<dyn PackageManager>,
         Box::new(NpmPackageManager) as Box<dyn PackageManager>,
+        Box::new(BrewPackageManager) as Box<dyn PackageManager>,
         // TODO: Add other package managers here
     ];
 
