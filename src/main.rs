@@ -4,10 +4,11 @@ mod package_managers {
     pub mod brew;
     pub mod cargo;
     pub mod npm;
+    pub mod snapcraft;
 }
 use crate::package_managers::{
     apt::AptPackageManager, brew::BrewPackageManager, cargo::CargoPackageManager,
-    npm::NpmPackageManager,
+    npm::NpmPackageManager, snapcraft::SnapCraftPackageManager,
 };
 use package_manager::PackageManager;
 
@@ -35,6 +36,7 @@ fn main() {
         Box::new(NpmPackageManager) as Box<dyn PackageManager>,
         Box::new(BrewPackageManager) as Box<dyn PackageManager>,
         Box::new(CargoPackageManager) as Box<dyn PackageManager>,
+        Box::new(SnapCraftPackageManager) as Box<dyn PackageManager>,
         // TODO: Add other package managers here
     ];
 
