@@ -26,7 +26,7 @@ cargo install --git https://github.com/danilofuchs/how.git
 - Linuxbrew
 - `npm -g`
   <!-- - `pip` -->
-  <!-- - `snap` -->
+- `snap`
   <!-- - `flatpak` -->
 - `cargo`
   <!-- - Bash aliases -->
