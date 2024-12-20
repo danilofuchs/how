@@ -48,3 +48,4 @@ cargo install --git https://github.com/danilofuchs/how.git
 - `cargo`
   <!-- - Bash aliases -->
   <!-- - Zsh aliases -->
+  <!-- - asdf -->

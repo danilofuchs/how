@@ -53,10 +53,11 @@ async fn main() {
         exit(1)
     }
 
-    if !command_exists(command) {
-        eprintln!("command '{}' not found in PATH", command);
-        exit(1)
-    }
+    // Some programs are installed by name (eg graphite) but the executable is different (eg gt)
+    // if !command_exists(command) {
+    //     eprintln!("command '{}' not found in PATH", command);
+    //     exit(1)
+    // }
 
     let mut tasks = vec![];
 
