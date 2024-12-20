@@ -18,6 +18,8 @@ use crate::command_exists::command_exists;
 use std::process::exit;
 
 use clap::Parser;
+use futures::future::join_all;
+use tokio::task;
 
 /// Finds the package manager that installed a command
 #[derive(Parser, Debug)]
@@ -27,16 +29,17 @@ struct Args {
     command: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args: Args = Args::parse();
     let command = &args.command;
 
-    let package_managers: Vec<Box<dyn PackageManager>> = vec![
-        Box::new(AptPackageManager) as Box<dyn PackageManager>,
-        Box::new(NpmPackageManager) as Box<dyn PackageManager>,
-        Box::new(BrewPackageManager) as Box<dyn PackageManager>,
-        Box::new(CargoPackageManager) as Box<dyn PackageManager>,
-        Box::new(SnapCraftPackageManager) as Box<dyn PackageManager>,
+    let package_managers: Vec<Box<dyn PackageManager + Send>> = vec![
+        Box::new(AptPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(NpmPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(BrewPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(CargoPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(SnapCraftPackageManager) as Box<dyn PackageManager + Send>,
         // TODO: Add other package managers here
     ];
 
@@ -50,35 +53,39 @@ fn main() {
         exit(1)
     }
 
+    let mut tasks = vec![];
+
+    for manager in package_managers {
+        let command = command.clone();
+        tasks.push(task::spawn(async move {
+            if !manager.is_installed() {
+                return None;
+            }
+
+            match manager.is_command_installed(&command) {
+                Ok(true) => Some(manager.name().to_string()),
+                Ok(false) => None,
+                Err(e) => {
+                    eprintln!("{} Error: {}", manager.name(), e);
+                    None
+                }
+            }
+        }));
+    }
+
+    let results = join_all(tasks).await;
+
     let mut matches = 0;
 
-    // Match all package managers to see if the command is installed
-    for manager in package_managers {
-        if !manager.is_installed() {
-            continue;
-        }
-
-        match manager.is_command_installed(&args.command) {
-            Ok(true) => {
-                println!("{} installed by {}", args.command, manager.name());
-                matches += 1;
-                continue;
-            }
-            Ok(false) => {
-                continue;
-            }
-            Err(e) => {
-                eprintln!("{} Error: {}", manager.name(), e);
-                continue;
-            }
+    for result in results {
+        if let Some(manager_name) = result.unwrap() {
+            println!("{} installed by {}", command, manager_name);
+            matches += 1;
         }
     }
 
     if matches == 0 {
-        eprintln!(
-            "Failed to find package that installed command {}",
-            args.command
-        );
+        eprintln!("Failed to find package that installed command {}", command);
         exit(1)
     }
 }
