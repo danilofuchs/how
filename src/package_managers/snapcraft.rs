@@ -36,7 +36,7 @@ impl PackageManager for SnapCraftPackageManager {
             }
             Err(error) => {
                 return Err(format!(
-                    "Failed to find package using Snapcraft {}: {}",
+                    "Failed to query snap for command {}: {}",
                     command, error
                 ));
             }

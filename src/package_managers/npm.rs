@@ -28,9 +28,6 @@ impl PackageManager for NpmPackageManager {
             return Ok(false);
         }
 
-        Err(format!(
-            "Failed to find package that installed command {}",
-            command
-        ))
+        Err(format!("Failed to query npm for command {}", command))
     }
 }

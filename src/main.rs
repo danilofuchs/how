@@ -4,11 +4,14 @@ mod package_managers {
     pub mod brew;
     pub mod cargo;
     pub mod npm;
+    pub mod pip;
+    pub mod pip3;
     pub mod snapcraft;
 }
 use crate::package_managers::{
     apt::AptPackageManager, brew::BrewPackageManager, cargo::CargoPackageManager,
-    npm::NpmPackageManager, snapcraft::SnapCraftPackageManager,
+    npm::NpmPackageManager, pip::PipPackageManager, pip3::Pip3PackageManager,
+    snapcraft::SnapCraftPackageManager,
 };
 use package_manager::PackageManager;
 
@@ -40,16 +43,18 @@ async fn main() {
         Box::new(BrewPackageManager) as Box<dyn PackageManager + Send>,
         Box::new(CargoPackageManager) as Box<dyn PackageManager + Send>,
         Box::new(SnapCraftPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(PipPackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(Pip3PackageManager) as Box<dyn PackageManager + Send>,
         // TODO: Add other package managers here
     ];
 
     if !command_exists("which") {
-        eprintln!("which command not found in PATH. It is required for this program to work.");
+        eprintln!("command 'which' not found in PATH. It is required for this program to work.");
         exit(1)
     }
 
     if !command_exists(command) {
-        eprintln!("command not found in PATH");
+        eprintln!("command '{}' not found in PATH", command);
         exit(1)
     }
 

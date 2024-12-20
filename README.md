@@ -2,9 +2,9 @@
 
 `which` for your executables.
 
-A Linux CLI to discover which package manager installed a command.
+A Linux/MacOS CLI to discover which package manager installed a command.
 
-Useful for updating, removing, or troubleshooting packages.
+Useful when updating, removing, or troubleshooting packages.
 
 ## Usage
 
@@ -16,6 +16,10 @@ Tells you which package managers installed `<command>`.
 
 ## Installation
 
+You must have Rust installed. If you don't, you can install it with [rustup](https://rustup.rs/).
+
+Then, run:
+
 ```sh
 cargo install --git https://github.com/danilofuchs/how.git
 ```
@@ -25,7 +29,7 @@ cargo install --git https://github.com/danilofuchs/how.git
 - `apt`
 - Linuxbrew
 - `npm -g`
-  <!-- - `pip` -->
+- `pip` and `pip3`
 - `snap`
   <!-- - `flatpak` -->
 - `cargo`
