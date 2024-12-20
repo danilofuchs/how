@@ -37,6 +37,8 @@ Then, run:
 cargo install --git https://github.com/danilofuchs/how.git
 ```
 
+> You also must have `which` installed.
+
 ## Supported package managers
 
 - `apt`

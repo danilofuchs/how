@@ -7,11 +7,12 @@ mod package_managers {
     pub mod pip;
     pub mod pip3;
     pub mod snapcraft;
+    pub mod asdf;
 }
 use crate::package_managers::{
     apt::AptPackageManager, brew::BrewPackageManager, cargo::CargoPackageManager,
     npm::NpmPackageManager, pip::PipPackageManager, pip3::Pip3PackageManager,
-    snapcraft::SnapCraftPackageManager,
+    snapcraft::SnapCraftPackageManager, asdf::AsdfPackageManager
 };
 use package_manager::PackageManager;
 
@@ -45,6 +46,7 @@ async fn main() {
         Box::new(SnapCraftPackageManager) as Box<dyn PackageManager + Send>,
         Box::new(PipPackageManager) as Box<dyn PackageManager + Send>,
         Box::new(Pip3PackageManager) as Box<dyn PackageManager + Send>,
+        Box::new(AsdfPackageManager) as Box<dyn PackageManager + Send>,
         // TODO: Add other package managers here
     ];
 
