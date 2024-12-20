@@ -50,4 +50,15 @@ cargo install --git https://github.com/danilofuchs/how.git
 - `cargo`
   <!-- - Bash aliases -->
   <!-- - Zsh aliases -->
-  <!-- - asdf -->
+- asdf
+
+## Contributing
+
+1. Install Rust
+2. Clone this repository
+
+To run the CLI:
+
+```sh
+cargo run <command>
+```
