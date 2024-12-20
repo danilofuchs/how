@@ -1,4 +1,4 @@
-use crate::package_manager::PackageManager;
+use crate::{command_exists::command_exists, package_manager::PackageManager};
 
 pub struct AptPackageManager;
 
@@ -7,7 +7,11 @@ impl PackageManager for AptPackageManager {
         "apt"
     }
 
-    fn is_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_installed(&self) -> bool {
+        command_exists("apt")
+    }
+
+    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
         let apt_output = std::process::Command::new("apt")
             .arg("list")
             .arg("--installed")

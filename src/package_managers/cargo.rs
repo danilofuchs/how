@@ -1,4 +1,4 @@
-use crate::package_manager::PackageManager;
+use crate::{command_exists::command_exists, package_manager::PackageManager};
 
 pub struct CargoPackageManager;
 
@@ -7,7 +7,11 @@ impl PackageManager for CargoPackageManager {
         "cargo"
     }
 
-    fn is_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_installed(&self) -> bool {
+        command_exists("npm")
+    }
+
+    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
         let cargo_output = std::process::Command::new("cargo")
             .arg("install")
             .arg("--list")

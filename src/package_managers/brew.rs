@@ -1,4 +1,4 @@
-use crate::package_manager::PackageManager;
+use crate::{command_exists::command_exists, package_manager::PackageManager};
 
 pub struct BrewPackageManager;
 
@@ -7,7 +7,11 @@ impl PackageManager for BrewPackageManager {
         "brew"
     }
 
-    fn is_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_installed(&self) -> bool {
+        command_exists("brew")
+    }
+
+    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
         let brew_output = std::process::Command::new("brew")
             .arg("list")
             .arg("--installed-on-request")

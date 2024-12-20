@@ -1,4 +1,4 @@
-use crate::package_manager::PackageManager;
+use crate::{command_exists::command_exists, package_manager::PackageManager};
 
 pub struct NpmPackageManager;
 
@@ -7,7 +7,11 @@ impl PackageManager for NpmPackageManager {
         "npm"
     }
 
-    fn is_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_installed(&self) -> bool {
+        command_exists("npm")
+    }
+
+    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
         let npm_output = std::process::Command::new("npm")
             .arg("list")
             .arg("--global")
