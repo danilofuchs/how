@@ -40,7 +40,7 @@ cargo install --git https://github.com/danilofuchs/how.git
 ## Supported package managers
 
 - `apt`
-- Linuxbrew
+- Homebrew / Linuxbrew
 - `npm -g`
 - `pip` and `pip3`
 - `snap`
