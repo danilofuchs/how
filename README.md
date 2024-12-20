@@ -14,6 +14,19 @@ how <command>
 
 Tells you which package managers installed `<command>`.
 
+### Example
+
+```sh
+$ how git
+> git installed by apt
+```
+
+```sh
+$ how starship
+> starship installed by cargo
+> starship installed by brew
+```
+
 ## Installation
 
 You must have Rust installed. If you don't, you can install it with [rustup](https://rustup.rs/).
