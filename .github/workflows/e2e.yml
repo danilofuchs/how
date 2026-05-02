@@ -1,0 +1,33 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [debian, arch, fedora]
+    name: e2e (${{ matrix.image }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & run ${{ matrix.image }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: tests/e2e/${{ matrix.image }}.Dockerfile
+          load: true
+          tags: how-e2e-${{ matrix.image }}:ci
+          cache-from: type=gha,scope=e2e-${{ matrix.image }}
+          cache-to: type=gha,scope=e2e-${{ matrix.image }},mode=max
+
+      - name: Run assertions
+        run: docker run --rm how-e2e-${{ matrix.image }}:ci

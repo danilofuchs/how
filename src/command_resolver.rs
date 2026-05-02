@@ -19,9 +19,19 @@ fn is_safe_command_name(name: &str) -> bool {
 }
 
 /// Use the user's interactive shell so aliases/functions defined in their rc
-/// files are visible. Falls back to `sh` if `$SHELL` is unset.
+/// files are visible. Falls back to `bash` then `sh` if `$SHELL` is unset —
+/// `sh` on Debian is dash, whose `type` builtin doesn't accept `--` and
+/// exits 127, which would make every lookup return `NotFound`.
 fn user_shell() -> String {
-    env::var("SHELL").unwrap_or_else(|_| "sh".to_string())
+    if let Ok(shell) = env::var("SHELL") {
+        if !shell.is_empty() {
+            return shell;
+        }
+    }
+    if Command::new("bash").arg("-c").arg(":").output().is_ok() {
+        return "bash".to_string();
+    }
+    "sh".to_string()
 }
 
 pub fn resolve(command: &str) -> Result<CommandResolution, String> {
