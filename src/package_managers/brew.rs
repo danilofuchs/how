@@ -15,6 +15,19 @@ impl PackageManager for BrewPackageManager {
     }
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        // Brew installs under one of these prefixes. If the command resolves
+        // to a concrete path outside all of them, brew can't be the source —
+        // skip the slow `brew list` call entirely.
+        if let Some(path) = cmd.path() {
+            const BREW_PREFIXES: &[&str] = &[
+                "/opt/homebrew/",
+                "/usr/local/",
+                "/home/linuxbrew/.linuxbrew/",
+            ];
+            if !BREW_PREFIXES.iter().any(|p| path.starts_with(p)) {
+                return Ok(false);
+            }
+        }
         let name = cmd.lookup_name();
         let brew_output = std::process::Command::new("brew")
             .arg("list")

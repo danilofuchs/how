@@ -17,7 +17,7 @@ use crate::package_managers::{
 use package_manager::{PackageManager, ResolvedCommand};
 
 mod command_resolver;
-use crate::command_resolver::{resolve, Resolution};
+use crate::command_resolver::{resolve, CommandResolution};
 
 use std::process::exit;
 
@@ -49,36 +49,39 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
 
 /// Reports the resolution to stdout/stderr and returns the resolution to
 /// hand to the package managers, plus whether `type` resolved to anything.
-fn report_resolution(command: &str, resolution: Result<Resolution, String>) -> (Resolution, bool) {
+fn report_resolution(
+    command: &str,
+    resolution: Result<CommandResolution, String>,
+) -> (CommandResolution, bool) {
     match resolution {
-        Ok(r @ Resolution::Path(_)) => {
-            if let Resolution::Path(p) = &r {
+        Ok(r @ CommandResolution::Path(_)) => {
+            if let CommandResolution::Path(p) = &r {
                 println!("{} resolves to {}", command, p);
             }
             (r, true)
         }
-        Ok(r @ Resolution::Alias(_)) => {
-            if let Resolution::Alias(target) = &r {
+        Ok(r @ CommandResolution::Alias(_)) => {
+            if let CommandResolution::Alias(target) = &r {
                 println!("{} is an alias for {}", command, target);
             }
             (r, true)
         }
-        Ok(Resolution::Function) => {
+        Ok(CommandResolution::Function) => {
             println!("{} is a shell function", command);
-            (Resolution::Function, true)
+            (CommandResolution::Function, true)
         }
-        Ok(Resolution::Builtin) => {
+        Ok(CommandResolution::Builtin) => {
             println!("{} is a shell builtin", command);
-            (Resolution::Builtin, true)
+            (CommandResolution::Builtin, true)
         }
-        Ok(Resolution::Keyword) => {
+        Ok(CommandResolution::Keyword) => {
             println!("{} is a shell reserved word", command);
-            (Resolution::Keyword, true)
+            (CommandResolution::Keyword, true)
         }
-        Ok(Resolution::NotFound) => (Resolution::NotFound, false),
+        Ok(CommandResolution::NotFound) => (CommandResolution::NotFound, false),
         Err(e) => {
             eprintln!("type resolver error: {}", e);
-            (Resolution::NotFound, false)
+            (CommandResolution::NotFound, false)
         }
     }
 }
@@ -86,7 +89,7 @@ fn report_resolution(command: &str, resolution: Result<Resolution, String>) -> (
 async fn find_installers(
     package_managers: Vec<Box<dyn PackageManager + Send>>,
     command: &str,
-    resolution: &Resolution,
+    resolution: &CommandResolution,
 ) -> Vec<String> {
     let tasks = package_managers.into_iter().map(|manager| {
         let command = command.to_string();
@@ -125,10 +128,20 @@ async fn main() {
     let resolution = resolve(command);
     let (resolution, type_found) = report_resolution(command, resolution);
 
-    let installers = find_installers(all_package_managers(), command, &resolution).await;
+    // Shell builtins, keywords, and functions can't have come from a package
+    // manager — skip the per-manager queries entirely.
+    let cmd = ResolvedCommand {
+        command,
+        resolution: &resolution,
+    };
+    let installers = if cmd.is_shell_internal() {
+        Vec::new()
+    } else {
+        find_installers(all_package_managers(), command, &resolution).await
+    };
 
     let lookup = match &resolution {
-        Resolution::Alias(target) => target.as_str(),
+        CommandResolution::Alias(target) => target.as_str(),
         _ => command.as_str(),
     };
     for manager_name in &installers {

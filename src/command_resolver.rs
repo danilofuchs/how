@@ -2,7 +2,7 @@ use std::env;
 use std::process::Command;
 
 #[derive(Clone)]
-pub enum Resolution {
+pub enum CommandResolution {
     Path(String),
     Alias(String),
     Function,
@@ -24,9 +24,9 @@ fn user_shell() -> String {
     env::var("SHELL").unwrap_or_else(|_| "sh".to_string())
 }
 
-pub fn resolve(command: &str) -> Result<Resolution, String> {
+pub fn resolve(command: &str) -> Result<CommandResolution, String> {
     if !is_safe_command_name(command) {
-        return Ok(Resolution::NotFound);
+        return Ok(CommandResolution::NotFound);
     }
 
     let shell = user_shell();
@@ -37,19 +37,19 @@ pub fn resolve(command: &str) -> Result<Resolution, String> {
         .map_err(|e| format!("failed to execute '{} -ic type': {}", shell, e))?;
 
     if !output.status.success() {
-        return Ok(Resolution::NotFound);
+        return Ok(CommandResolution::NotFound);
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let line = stdout.lines().next().unwrap_or("").trim();
     if line.is_empty() {
-        return Ok(Resolution::NotFound);
+        return Ok(CommandResolution::NotFound);
     }
 
     parse_type_output(command, line)
 }
 
-fn parse_type_output(command: &str, line: &str) -> Result<Resolution, String> {
+fn parse_type_output(command: &str, line: &str) -> Result<CommandResolution, String> {
     // bash/sh: "<cmd> is /path"  /  "<cmd> is aliased to '<expansion>'"
     // zsh:     "<cmd> is /path"  /  "<cmd> is an alias for <expansion>"
     //          "<cmd>: aliased to <expansion>"  (some sh variants)
@@ -65,7 +65,7 @@ fn parse_type_output(command: &str, line: &str) -> Result<Resolution, String> {
     let rest = rest_owned.as_str();
 
     if rest.starts_with('/') {
-        return Ok(Resolution::Path(rest.to_string()));
+        return Ok(CommandResolution::Path(rest.to_string()));
     }
     let alias_expansion = rest
         .strip_prefix("aliased to ")
@@ -76,25 +76,25 @@ fn parse_type_output(command: &str, line: &str) -> Result<Resolution, String> {
         if target.is_empty() {
             return Err(format!("could not parse alias expansion: {}", line));
         }
-        return Ok(Resolution::Alias(target));
+        return Ok(CommandResolution::Alias(target));
     }
     if rest == "a shell builtin" || rest == "a special shell builtin" {
-        return Ok(Resolution::Builtin);
+        return Ok(CommandResolution::Builtin);
     }
     if rest == "a function"
         || rest == "a shell function"
         || rest.starts_with("a function")
         || rest.starts_with("a shell function")
     {
-        return Ok(Resolution::Function);
+        return Ok(CommandResolution::Function);
     }
     if rest == "a shell keyword" || rest == "a reserved word" {
-        return Ok(Resolution::Keyword);
+        return Ok(CommandResolution::Keyword);
     }
     if rest.starts_with("hashed") {
         if let (Some(open), Some(close)) = (rest.find('('), rest.rfind(')')) {
             if open + 1 < close {
-                return Ok(Resolution::Path(rest[open + 1..close].to_string()));
+                return Ok(CommandResolution::Path(rest[open + 1..close].to_string()));
             }
         }
     }

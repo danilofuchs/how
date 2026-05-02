@@ -15,6 +15,10 @@ impl PackageManager for SnapCraftPackageManager {
     }
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        // snap exposes commands via /snap/bin/. A path resolution settles it.
+        if let Some(path) = cmd.path() {
+            return Ok(path.starts_with("/snap/bin/"));
+        }
         let name = cmd.lookup_name();
         let snap_output = std::process::Command::new("snap")
             .arg("list")
