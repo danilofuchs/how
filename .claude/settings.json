@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(./tests/e2e/run.sh:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
