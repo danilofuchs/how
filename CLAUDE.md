@@ -24,7 +24,18 @@ A small Rust CLI (`how <command>`) that reports which package manager(s) install
    - `cargo fmt --check` — formatting must match.
    - `cargo test` if tests exist for the area touched.
    - For behavioral changes, run `cargo run -- <command>` against a real command on this machine and confirm the output.
+   - For changes that affect Linux package managers (apt/dnf/pacman) or distro-specific resolution, run the relevant e2e image — see below.
 5. **Summarize** what changed in 1–2 sentences.
+
+## End-to-end tests
+
+Real package-manager behavior is exercised in containers under `tests/e2e/`. CI runs all three on every PR via `.github/workflows/e2e.yml`.
+
+- **Layout**: one Dockerfile per distro (`debian.Dockerfile`, `arch.Dockerfile`, `fedora.Dockerfile`) installs a known package via each supported manager, then runs `tests/e2e/cases/<distro>.sh` as the container's CMD. Each case installs a package via one manager and asserts `how <cmd>` reports that manager (via the `assert_how` helper).
+- **Run locally**: `./tests/e2e/run.sh <debian|arch|fedora>` builds the image and runs the assertions. Requires Docker. First build is slow (cold layer cache); reruns are fast.
+- **When to run**: any change to `command_resolver.rs`, the `PackageManager` trait, or a Linux-specific manager module (apt, dnf, pacman, snap, and the cross-platform ones to a lesser extent). macOS-only managers (brew on Darwin, MacPorts) aren't covered — smoke-test those manually.
+- **When adding a new manager**: add an install step to whichever distro Dockerfile(s) ship it, plus an `assert_how` line to the matching `cases/<distro>.sh`. Pick a package that *only* that manager would install, to avoid cross-attribution noise — except where shadowing is the point of the test.
+- **Debugging a failure**: `docker run --rm -it --entrypoint bash how-e2e-<distro>` drops you into the built image with `how` on PATH; rerun the failing `how <cmd>` by hand.
 
 ## Adding a new package manager
 

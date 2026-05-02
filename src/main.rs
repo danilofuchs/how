@@ -5,6 +5,7 @@ mod package_managers {
     pub mod brew;
     pub mod bun;
     pub mod cargo;
+    pub mod corepack;
     pub mod dnf;
     pub mod gem;
     pub mod go;
@@ -24,12 +25,13 @@ mod package_managers {
 }
 use crate::package_managers::{
     apt::AptPackageManager, asdf::AsdfPackageManager, brew::BrewPackageManager,
-    bun::BunPackageManager, cargo::CargoPackageManager, dnf::DnfPackageManager,
-    gem::GemPackageManager, go::GoPackageManager, macports::MacPortsPackageManager,
-    mise::MisePackageManager, npm::NpmPackageManager, nvm::NvmPackageManager,
-    pacman::PacmanPackageManager, pip::PipPackageManager, pipx::PipxPackageManager,
-    pnpm::PnpmPackageManager, pyenv::PyenvPackageManager, rbenv::RbenvPackageManager,
-    snapcraft::SnapCraftPackageManager, uv::UvPackageManager, yarn::YarnPackageManager,
+    bun::BunPackageManager, cargo::CargoPackageManager, corepack::CorepackPackageManager,
+    dnf::DnfPackageManager, gem::GemPackageManager, go::GoPackageManager,
+    macports::MacPortsPackageManager, mise::MisePackageManager, npm::NpmPackageManager,
+    nvm::NvmPackageManager, pacman::PacmanPackageManager, pip::PipPackageManager,
+    pipx::PipxPackageManager, pnpm::PnpmPackageManager, pyenv::PyenvPackageManager,
+    rbenv::RbenvPackageManager, snapcraft::SnapCraftPackageManager, uv::UvPackageManager,
+    yarn::YarnPackageManager,
 };
 use package_manager::{PackageManager, ResolvedCommand};
 
@@ -58,6 +60,7 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send + Sync>> {
         Box::new(NvmPackageManager),
         Box::new(BrewPackageManager),
         Box::new(CargoPackageManager),
+        Box::new(CorepackPackageManager),
         Box::new(SnapCraftPackageManager),
         Box::new(PipPackageManager { bin: "pip" }),
         Box::new(PipPackageManager { bin: "pip3" }),
@@ -181,7 +184,7 @@ async fn main() {
     }
 
     if installers.is_empty() && !type_found {
-        eprintln!("Failed to find package that installed command {}", command);
+        eprintln!("{}: command not found", command);
         exit(1)
     }
 }

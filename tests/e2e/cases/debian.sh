@@ -72,6 +72,12 @@ export PATH="$GOBIN:$PATH"
 go install github.com/rakyll/hey@latest
 assert_how hey go
 
+section "corepack"
+# `corepack enable yarn` (run in the Dockerfile) installed a yarn shim
+# next to corepack itself. The shim is a symlink whose target's filename
+# is `corepack`, which is what the corepack detector keys on.
+assert_how yarn corepack
+
 section "nvm + node shadowing"
 # Both apt-node (/usr/bin/node) and nvm-node ($NVM_DIR/versions/node/.../bin/node)
 # exist. Whichever manager owns the resolved path wins. nvm's init prepends
@@ -83,6 +89,18 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 nvm install 24 >/dev/null
 nvm use 24 >/dev/null
 assert_how node nvm
+
+section "uninstalled command"
+# A command that isn't on PATH should report "command not found", not the
+# misleading "Failed to find package that installed command ...".
+out=$(how definitely-not-a-real-cmd-xyz 2>&1) || true
+if echo "$out" | grep -q "command not found"; then
+  echo "OK:   how <missing> → command not found"
+else
+  echo "FAIL: how <missing> did not report 'command not found'"
+  echo "$out" | sed 's/^/  | /'
+  fail=$((fail + 1))
+fi
 
 echo
 if (( fail > 0 )); then

@@ -63,6 +63,7 @@ cargo install --git https://github.com/danilofuchs/how.git
 - asdf
 - mise
 - nvm
+- corepack
 - pyenv
 - rbenv
 
