@@ -5,14 +5,15 @@ mod package_managers {
     pub mod brew;
     pub mod cargo;
     pub mod npm;
+    pub mod nvm;
     pub mod pip;
     pub mod pip3;
     pub mod snapcraft;
 }
 use crate::package_managers::{
     apt::AptPackageManager, asdf::AsdfPackageManager, brew::BrewPackageManager,
-    cargo::CargoPackageManager, npm::NpmPackageManager, pip::PipPackageManager,
-    pip3::Pip3PackageManager, snapcraft::SnapCraftPackageManager,
+    cargo::CargoPackageManager, npm::NpmPackageManager, nvm::NvmPackageManager,
+    pip::PipPackageManager, pip3::Pip3PackageManager, snapcraft::SnapCraftPackageManager,
 };
 use package_manager::{PackageManager, ResolvedCommand};
 
@@ -37,6 +38,7 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
     vec![
         Box::new(AptPackageManager),
         Box::new(NpmPackageManager),
+        Box::new(NvmPackageManager),
         Box::new(BrewPackageManager),
         Box::new(CargoPackageManager),
         Box::new(SnapCraftPackageManager),

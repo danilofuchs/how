@@ -51,6 +51,7 @@ cargo install --git https://github.com/danilofuchs/how.git
   <!-- - Bash aliases -->
   <!-- - Zsh aliases -->
 - asdf
+- nvm
 
 ## Contributing
 
