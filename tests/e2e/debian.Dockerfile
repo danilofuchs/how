@@ -26,13 +26,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Node.js 24 via NodeSource → gives `node` and `npm`. corepack is
-#    deprecated upstream, so install pnpm via its standalone installer
-#    instead. (yarn is intentionally skipped for now — Berry has no
-#    `global` and classic-yarn-via-npm collides with the npm test.)
+# 2. Node.js 24 via NodeSource → gives `node`, `npm`, and `corepack`.
+#    `pnpm` is installed via its standalone installer below (separate from
+#    corepack) so the pnpm test attributes to pnpm itself; corepack is
+#    exercised separately by enabling its `yarn` shim.
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# corepack ships with Node. `corepack enable yarn` creates a `yarn`
+# symlink next to corepack itself (e.g. /usr/bin/yarn → corepack), which
+# is the shape `how`'s corepack detector matches.
+RUN corepack enable yarn
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="${PNPM_HOME}:${PATH}"
