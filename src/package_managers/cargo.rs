@@ -1,4 +1,4 @@
-use crate::{command_exists::command_exists, package_manager::PackageManager};
+use crate::{command_resolver::command_exists, package_manager::PackageManager};
 
 pub struct CargoPackageManager;
 

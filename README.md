@@ -12,7 +12,7 @@ Useful when updating, removing, or troubleshooting packages.
 how <command>
 ```
 
-Tells you which package managers installed `<command>`.
+Tells you which package managers installed `<command>`. Also resolves the command via `type` first, so you see whether it's an executable path, a shell alias, function, or builtin — and alias targets are followed before the package-manager checks run.
 
 ### Example
 
@@ -37,7 +37,7 @@ Then, run:
 cargo install --git https://github.com/danilofuchs/how.git
 ```
 
-> You also must have `which` installed.
+> Requires a POSIX `sh` in `PATH` (used to invoke `type`).
 
 ## Supported package managers
 
