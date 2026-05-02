@@ -14,7 +14,6 @@ mod package_managers {
     pub mod nvm;
     pub mod pacman;
     pub mod pip;
-    pub mod pip3;
     pub mod pipx;
     pub mod pnpm;
     pub mod pyenv;
@@ -28,10 +27,9 @@ use crate::package_managers::{
     bun::BunPackageManager, cargo::CargoPackageManager, dnf::DnfPackageManager,
     gem::GemPackageManager, go::GoPackageManager, macports::MacPortsPackageManager,
     mise::MisePackageManager, npm::NpmPackageManager, nvm::NvmPackageManager,
-    pacman::PacmanPackageManager, pip::PipPackageManager, pip3::Pip3PackageManager,
-    pipx::PipxPackageManager, pnpm::PnpmPackageManager, pyenv::PyenvPackageManager,
-    rbenv::RbenvPackageManager, snapcraft::SnapCraftPackageManager, uv::UvPackageManager,
-    yarn::YarnPackageManager,
+    pacman::PacmanPackageManager, pip::PipPackageManager, pipx::PipxPackageManager,
+    pnpm::PnpmPackageManager, pyenv::PyenvPackageManager, rbenv::RbenvPackageManager,
+    snapcraft::SnapCraftPackageManager, uv::UvPackageManager, yarn::YarnPackageManager,
 };
 use package_manager::{PackageManager, ResolvedCommand};
 
@@ -39,6 +37,7 @@ mod command_resolver;
 use crate::command_resolver::{resolve, CommandResolution};
 
 use std::process::exit;
+use std::sync::Arc;
 
 use clap::Parser;
 use futures::future::join_all;
@@ -52,7 +51,7 @@ struct Args {
     command: String,
 }
 
-fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
+fn all_package_managers() -> Vec<Box<dyn PackageManager + Send + Sync>> {
     vec![
         Box::new(AptPackageManager),
         Box::new(NpmPackageManager),
@@ -60,8 +59,8 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
         Box::new(BrewPackageManager),
         Box::new(CargoPackageManager),
         Box::new(SnapCraftPackageManager),
-        Box::new(PipPackageManager),
-        Box::new(Pip3PackageManager),
+        Box::new(PipPackageManager { bin: "pip" }),
+        Box::new(PipPackageManager { bin: "pip3" }),
         Box::new(AsdfPackageManager),
         Box::new(PnpmPackageManager),
         Box::new(YarnPackageManager),
@@ -76,7 +75,6 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
         Box::new(MisePackageManager),
         Box::new(PyenvPackageManager),
         Box::new(RbenvPackageManager),
-        // TODO: Add other package managers here
     ]
 }
 
@@ -87,17 +85,13 @@ fn report_resolution(
     resolution: Result<CommandResolution, String>,
 ) -> (CommandResolution, bool) {
     match resolution {
-        Ok(r @ CommandResolution::Path(_)) => {
-            if let CommandResolution::Path(p) = &r {
-                println!("{} resolves to {}", command, p);
-            }
-            (r, true)
+        Ok(CommandResolution::Path(p)) => {
+            println!("{} resolves to {}", command, p);
+            (CommandResolution::Path(p), true)
         }
-        Ok(r @ CommandResolution::Alias(_)) => {
-            if let CommandResolution::Alias(target) = &r {
-                println!("{} is an alias for {}", command, target);
-            }
-            (r, true)
+        Ok(CommandResolution::Alias(target)) => {
+            println!("{} is an alias for {}", command, target);
+            (CommandResolution::Alias(target), true)
         }
         Ok(CommandResolution::Function) => {
             println!("{} is a shell function", command);
@@ -120,17 +114,25 @@ fn report_resolution(
 }
 
 async fn find_installers(
-    package_managers: Vec<Box<dyn PackageManager + Send>>,
+    package_managers: Vec<Box<dyn PackageManager + Send + Sync>>,
     command: &str,
     resolution: &CommandResolution,
 ) -> Vec<String> {
-    let tasks = package_managers.into_iter().map(|manager| {
+    // Filter to installed managers up front — no point spawning a task per
+    // manager just to check `command_exists`.
+    let installed: Vec<Arc<dyn PackageManager + Send + Sync>> = package_managers
+        .into_iter()
+        .filter(|m| m.is_installed())
+        .map(Arc::from)
+        .collect();
+
+    let tasks = installed.into_iter().map(|manager| {
         let command = command.to_string();
         let resolution = resolution.clone();
-        task::spawn(async move {
-            if !manager.is_installed() {
-                return None;
-            }
+        // Each manager shells out — that's blocking work. `spawn_blocking`
+        // runs it on the blocking pool so subprocesses don't starve the
+        // async runtime threads.
+        task::spawn_blocking(move || {
             let cmd = ResolvedCommand {
                 command: &command,
                 resolution: &resolution,
@@ -173,10 +175,7 @@ async fn main() {
         find_installers(all_package_managers(), command, &resolution).await
     };
 
-    let lookup = match &resolution {
-        CommandResolution::Alias(target) => target.as_str(),
-        _ => command.as_str(),
-    };
+    let lookup = cmd.lookup_name();
     for manager_name in &installers {
         println!("{} installed by {}", lookup, manager_name);
     }

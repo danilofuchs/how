@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{run_capture, PackageManager, ResolvedCommand},
 };
 
 pub struct DnfPackageManager;
@@ -32,21 +32,12 @@ impl PackageManager for DnfPackageManager {
         }
 
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("dnf")
-            .arg("list")
-            .arg("--installed")
-            .output()
-            .map_err(|e| format!("failed to run dnf: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query dnf for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
+        let stdout = run_capture("dnf", &["list", "--installed"])?;
         // Lines look like "<name>.<arch>   <version>   <repo>".
-        Ok(s.lines().any(|line| {
+        Ok(stdout.lines().any(|line| {
             line.split_whitespace()
                 .next()
-                .and_then(|first| first.split('.').next())
+                .and_then(|first| first.rsplit_once('.').map(|(pkg, _)| pkg))
                 .map(|pkg| pkg == name)
                 .unwrap_or(false)
         }))

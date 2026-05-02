@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
 pub struct PnpmPackageManager;
@@ -22,27 +22,15 @@ impl PackageManager for PnpmPackageManager {
         if let Some(path) = cmd.path() {
             if let Some(home) = pnpm_home() {
                 let prefix = format!("{}/", home.trim_end_matches('/'));
-                if path.starts_with(&prefix) {
-                    return Ok(true);
-                }
-                return Ok(false);
+                return Ok(path.starts_with(&prefix));
             }
         }
 
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("pnpm")
-            .arg("list")
-            .arg("--global")
-            .arg("--depth=0")
-            .arg("--parseable")
-            .output()
-            .map_err(|e| format!("failed to run pnpm: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query pnpm for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
-        Ok(s.lines().any(|line| line.ends_with(name)))
+        let stdout = run_capture("pnpm", &["list", "--global", "--depth=0", "--parseable"])?;
+        // `--parseable` prints absolute paths whose final component is the
+        // package name; match by file_name to avoid `foo` matching `barfoo`.
+        Ok(listing_contains(&stdout, name, LineMatch::PathTail))
     }
 }
 

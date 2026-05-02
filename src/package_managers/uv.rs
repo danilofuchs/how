@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{run_capture, PackageManager, ResolvedCommand},
 };
 
 pub struct UvPackageManager;
@@ -16,19 +16,10 @@ impl PackageManager for UvPackageManager {
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("uv")
-            .arg("tool")
-            .arg("list")
-            .output()
-            .map_err(|e| format!("failed to run uv: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query uv for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
+        let stdout = run_capture("uv", &["tool", "list"])?;
         // `uv tool list` emits a header line per tool ("pkg vX.Y.Z") followed
         // by "- <binary>" lines. Match either.
-        Ok(s.lines().any(|line| {
+        Ok(stdout.lines().any(|line| {
             let trimmed = line.trim();
             if let Some(rest) = trimmed.strip_prefix("- ") {
                 rest == name

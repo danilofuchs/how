@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
 pub struct AptPackageManager;
@@ -16,20 +16,14 @@ impl PackageManager for AptPackageManager {
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
         let name = cmd.lookup_name();
-        let apt_output = std::process::Command::new("apt")
-            .arg("list")
-            .arg("--installed")
-            .output()
-            .expect("Failed to execute apt command");
-
-        if apt_output.status.success() {
-            let output_str = String::from_utf8_lossy(&apt_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(name)) {
-                return Ok(true);
-            }
-            return Ok(false);
-        }
-
-        Err(format!("Failed to query apt for command {}", name))
+        let stdout = run_capture("apt", &["list", "--installed"])?;
+        // `apt list --installed` formats lines as `pkg/distro version arch [installed]`.
+        Ok(listing_contains(
+            &stdout,
+            name,
+            LineMatch::WordStart {
+                terminators: &['/'],
+            },
+        ))
     }
 }

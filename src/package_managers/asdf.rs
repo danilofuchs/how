@@ -15,30 +15,18 @@ impl PackageManager for AsdfPackageManager {
     }
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
-        // asdf-managed commands always go through a shim under its data dir.
-        // The path tells us conclusively whether asdf is the source.
-        if let Some(path) = cmd.path() {
-            if let Some(shims) = asdf_shims_dir() {
-                let prefix = format!("{}/", shims);
-                return Ok(path.starts_with(&prefix));
-            }
-        }
-        let name = cmd.lookup_name();
-        let asdf_output = std::process::Command::new("asdf")
-            .arg("plugin")
-            .arg("list")
-            .output()
-            .expect("Failed to execute asdf command");
-
-        if asdf_output.status.success() {
-            let output_str = String::from_utf8_lossy(&asdf_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(name)) {
-                return Ok(true);
-            }
-            return Ok(false);
-        }
-
-        Err(format!("Failed to query asdf for command {}", name))
+        // asdf-managed commands always resolve through a shim under its data
+        // dir. If we don't have a path (alias / shell-internal / not found),
+        // asdf can't be the source.
+        let path = match cmd.path() {
+            Some(p) => p,
+            None => return Ok(false),
+        };
+        let shims = match asdf_shims_dir() {
+            Some(d) => d,
+            None => return Ok(false),
+        };
+        Ok(path.starts_with(&format!("{}/", shims)))
     }
 }
 

@@ -1,34 +1,31 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
-pub struct PipPackageManager;
+pub struct PipPackageManager {
+    pub bin: &'static str,
+}
 
 impl PackageManager for PipPackageManager {
     fn name(&self) -> &str {
-        "pip"
+        self.bin
     }
 
     fn is_installed(&self) -> bool {
-        command_exists("pip")
+        command_exists(self.bin)
     }
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
         let name = cmd.lookup_name();
-        let pip_output = std::process::Command::new("pip")
-            .arg("list")
-            .output()
-            .expect("Failed to execute pip command");
-
-        if pip_output.status.success() {
-            let output_str = String::from_utf8_lossy(&pip_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(name)) {
-                return Ok(true);
-            }
-            return Ok(false);
-        }
-
-        Err(format!("Failed to query pip for command {}", name))
+        let stdout = run_capture(self.bin, &["list"])?;
+        // `pip list` columns: `Package    Version`. Whitespace-terminated.
+        Ok(listing_contains(
+            &stdout,
+            name,
+            LineMatch::WordStart {
+                terminators: &[' ', '\t'],
+            },
+        ))
     }
 }

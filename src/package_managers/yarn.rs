@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{run_capture, PackageManager, ResolvedCommand},
 };
 
 pub struct YarnPackageManager;
@@ -16,49 +16,29 @@ impl PackageManager for YarnPackageManager {
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
         // Yarn Classic exposes globally-installed binaries under `yarn global
-        // bin`. A path outside that dir can't be a yarn global install.
+        // bin`. When we have a path, that prefix is authoritative.
         if let Some(path) = cmd.path() {
             if let Some(bin_dir) = yarn_global_bin() {
                 let prefix = format!("{}/", bin_dir.trim_end_matches('/'));
-                if !path.starts_with(&prefix) {
-                    return Ok(false);
-                }
-                return Ok(true);
+                return Ok(path.starts_with(&prefix));
             }
         }
 
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("yarn")
-            .arg("global")
-            .arg("list")
-            .arg("--depth=0")
-            .output()
-            .map_err(|e| format!("failed to run yarn: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query yarn for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
+        let stdout = run_capture("yarn", &["global", "list", "--depth=0"])?;
         // Lines look like: info "pkg@1.2.3" has binaries: ...
-        // Keep it simple: any occurrence of the binary name on a binary line.
-        Ok(s.lines()
-            .any(|line| line.contains(&format!("\"{}\"", name)) || line.contains(name)))
+        // Match the quoted package name as a whole token.
+        let needle = format!("\"{}@", name);
+        Ok(stdout.lines().any(|line| line.contains(&needle)))
     }
 }
 
 fn yarn_global_bin() -> Option<String> {
-    let output = std::process::Command::new("yarn")
-        .arg("global")
-        .arg("bin")
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stdout = run_capture("yarn", &["global", "bin"]).ok()?;
+    let s = stdout.trim();
     if s.is_empty() {
         None
     } else {
-        Some(s)
+        Some(s.to_string())
     }
 }

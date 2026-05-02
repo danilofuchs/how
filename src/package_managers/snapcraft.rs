@@ -20,29 +20,19 @@ impl PackageManager for SnapCraftPackageManager {
             return Ok(path.starts_with("/snap/bin/"));
         }
         let name = cmd.lookup_name();
-        let snap_output = std::process::Command::new("snap")
+        let output = std::process::Command::new("snap")
             .arg("list")
             .arg(name)
-            .output();
+            .output()
+            .map_err(|e| format!("failed to execute snap: {}", e))?;
 
-        match snap_output {
-            Ok(output) => {
-                if output.status.success() {
-                    Ok(true)
-                } else {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-
-                    if stderr.contains("error: no matching snaps installed") {
-                        Ok(false)
-                    } else {
-                        Err(format!("Failed to find package using Snapcraft {}", name))
-                    }
-                }
-            }
-            Err(error) => Err(format!(
-                "Failed to query snap for command {}: {}",
-                name, error
-            )),
+        if output.status.success() {
+            return Ok(true);
         }
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("error: no matching snaps installed") {
+            return Ok(false);
+        }
+        Err(format!("Failed to find package using Snapcraft {}", name))
     }
 }

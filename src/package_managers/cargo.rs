@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
 pub struct CargoPackageManager;
@@ -28,21 +28,15 @@ impl PackageManager for CargoPackageManager {
             }
         }
         let name = cmd.lookup_name();
-        let cargo_output = std::process::Command::new("cargo")
-            .arg("install")
-            .arg("--list")
-            .output()
-            .expect("Failed to execute cargo command");
-
-        if cargo_output.status.success() {
-            let output_str = String::from_utf8_lossy(&cargo_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(name)) {
-                return Ok(true);
-            }
-            return Ok(false);
-        }
-
-        Err(format!("Failed to query cargo for command {}", name))
+        let stdout = run_capture("cargo", &["install", "--list"])?;
+        // Output: `cratename vX.Y.Z:` followed by indented binary lines.
+        Ok(listing_contains(
+            &stdout,
+            name,
+            LineMatch::WordStart {
+                terminators: &[' '],
+            },
+        ))
     }
 }
 

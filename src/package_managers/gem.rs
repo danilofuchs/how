@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
 pub struct GemPackageManager;
@@ -27,36 +27,20 @@ impl PackageManager for GemPackageManager {
         }
 
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("gem")
-            .arg("list")
-            .arg("--no-versions")
-            .output()
-            .map_err(|e| format!("failed to run gem: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query gem for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
+        let stdout = run_capture("gem", &["list", "--no-versions"])?;
         // Gem package name often differs from the binary name (e.g.
         // `bundler` ships `bundle`). The name match here will miss those.
         // For the common case where they match, this is correct.
-        Ok(s.lines().any(|line| line.trim() == name))
+        Ok(listing_contains(&stdout, name, LineMatch::ExactLine))
     }
 }
 
 fn gem_bin_dir() -> Option<String> {
-    let output = std::process::Command::new("gem")
-        .arg("environment")
-        .arg("gembindir")
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stdout = run_capture("gem", &["environment", "gembindir"]).ok()?;
+    let s = stdout.trim();
     if s.is_empty() {
         None
     } else {
-        Some(s)
+        Some(s.to_string())
     }
 }

@@ -28,19 +28,21 @@ impl PackageManager for BunPackageManager {
         }
 
         let name = cmd.lookup_name();
+        // `bun pm ls -g` exits non-zero when nothing is globally installed —
+        // not a real failure for our purposes. Treat any non-success as
+        // "not found" instead of surfacing it as an error.
         let output = std::process::Command::new("bun")
-            .arg("pm")
-            .arg("ls")
-            .arg("-g")
+            .args(["pm", "ls", "-g"])
             .output()
             .map_err(|e| format!("failed to run bun: {}", e))?;
-
         if !output.status.success() {
-            return Err(format!("Failed to query bun for command {}", name));
+            return Ok(false);
         }
-        let s = String::from_utf8_lossy(&output.stdout);
-        Ok(s.lines()
-            .any(|line| line.contains(&format!(" {}@", name)) || line.ends_with(name)))
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Lines look like `├── pkg@1.2.3`. Match the package name as a
+        // whole token followed by `@`.
+        let needle = format!(" {}@", name);
+        Ok(stdout.lines().any(|line| line.contains(&needle)))
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     command_resolver::command_exists,
-    package_manager::{PackageManager, ResolvedCommand},
+    package_manager::{listing_contains, run_capture, LineMatch, PackageManager, ResolvedCommand},
 };
 
 pub struct PacmanPackageManager;
@@ -27,15 +27,7 @@ impl PackageManager for PacmanPackageManager {
         }
 
         let name = cmd.lookup_name();
-        let output = std::process::Command::new("pacman")
-            .arg("-Qq")
-            .output()
-            .map_err(|e| format!("failed to run pacman: {}", e))?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to query pacman for command {}", name));
-        }
-        let s = String::from_utf8_lossy(&output.stdout);
-        Ok(s.lines().any(|line| line == name))
+        let stdout = run_capture("pacman", &["-Qq"])?;
+        Ok(listing_contains(&stdout, name, LineMatch::ExactLine))
     }
 }
