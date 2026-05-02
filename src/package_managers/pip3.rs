@@ -1,4 +1,7 @@
-use crate::{command_resolver::command_exists, package_manager::PackageManager};
+use crate::{
+    command_resolver::command_exists,
+    package_manager::{PackageManager, ResolvedCommand},
+};
 
 pub struct Pip3PackageManager;
 
@@ -11,7 +14,8 @@ impl PackageManager for Pip3PackageManager {
         command_exists("pip3")
     }
 
-    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        let name = cmd.lookup_name();
         let pip_output = std::process::Command::new("pip3")
             .arg("list")
             .output()
@@ -19,12 +23,12 @@ impl PackageManager for Pip3PackageManager {
 
         if pip_output.status.success() {
             let output_str = String::from_utf8_lossy(&pip_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(command)) {
+            if output_str.lines().any(|line| line.starts_with(name)) {
                 return Ok(true);
             }
             return Ok(false);
         }
 
-        Err(format!("Failed to query pip3 for command {}", command))
+        Err(format!("Failed to query pip3 for command {}", name))
     }
 }

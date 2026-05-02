@@ -1,4 +1,7 @@
-use crate::{command_resolver::command_exists, package_manager::PackageManager};
+use crate::{
+    command_resolver::command_exists,
+    package_manager::{PackageManager, ResolvedCommand},
+};
 
 pub struct BrewPackageManager;
 
@@ -11,7 +14,8 @@ impl PackageManager for BrewPackageManager {
         command_exists("brew")
     }
 
-    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        let name = cmd.lookup_name();
         let brew_output = std::process::Command::new("brew")
             .arg("list")
             .arg("--installed-on-request")
@@ -21,12 +25,12 @@ impl PackageManager for BrewPackageManager {
 
         if brew_output.status.success() {
             let output_str = String::from_utf8_lossy(&brew_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(command)) {
+            if output_str.lines().any(|line| line.starts_with(name)) {
                 return Ok(true);
             }
             return Ok(false);
         }
 
-        Err(format!("Failed to query brew for command {}", command))
+        Err(format!("Failed to query brew for command {}", name))
     }
 }

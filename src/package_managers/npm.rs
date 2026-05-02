@@ -1,4 +1,7 @@
-use crate::{command_resolver::command_exists, package_manager::PackageManager};
+use crate::{
+    command_resolver::command_exists,
+    package_manager::{PackageManager, ResolvedCommand},
+};
 
 pub struct NpmPackageManager;
 
@@ -11,7 +14,8 @@ impl PackageManager for NpmPackageManager {
         command_exists("npm")
     }
 
-    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        let name = cmd.lookup_name();
         let npm_output = std::process::Command::new("npm")
             .arg("list")
             .arg("--global")
@@ -22,12 +26,12 @@ impl PackageManager for NpmPackageManager {
 
         if npm_output.status.success() {
             let output_str = String::from_utf8_lossy(&npm_output.stdout);
-            if output_str.lines().any(|line| line.ends_with(command)) {
+            if output_str.lines().any(|line| line.ends_with(name)) {
                 return Ok(true);
             }
             return Ok(false);
         }
 
-        Err(format!("Failed to query npm for command {}", command))
+        Err(format!("Failed to query npm for command {}", name))
     }
 }

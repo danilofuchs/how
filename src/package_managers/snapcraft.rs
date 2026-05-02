@@ -1,4 +1,7 @@
-use crate::{command_resolver::command_exists, package_manager::PackageManager};
+use crate::{
+    command_resolver::command_exists,
+    package_manager::{PackageManager, ResolvedCommand},
+};
 
 pub struct SnapCraftPackageManager;
 
@@ -11,35 +14,31 @@ impl PackageManager for SnapCraftPackageManager {
         command_exists("snap")
     }
 
-    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        let name = cmd.lookup_name();
         let snap_output = std::process::Command::new("snap")
             .arg("list")
-            .arg(command)
+            .arg(name)
             .output();
 
         match snap_output {
             Ok(output) => {
                 if output.status.success() {
-                    return Ok(true);
+                    Ok(true)
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
 
                     if stderr.contains("error: no matching snaps installed") {
-                        return Ok(false);
+                        Ok(false)
+                    } else {
+                        Err(format!("Failed to find package using Snapcraft {}", name))
                     }
-
-                    return Err(format!(
-                        "Failed to find package using Snapcraft {}",
-                        command
-                    ));
                 }
             }
-            Err(error) => {
-                return Err(format!(
-                    "Failed to query snap for command {}: {}",
-                    command, error
-                ));
-            }
+            Err(error) => Err(format!(
+                "Failed to query snap for command {}: {}",
+                name, error
+            )),
         }
     }
 }

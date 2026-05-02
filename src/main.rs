@@ -14,7 +14,7 @@ use crate::package_managers::{
     cargo::CargoPackageManager, npm::NpmPackageManager, pip::PipPackageManager,
     pip3::Pip3PackageManager, snapcraft::SnapCraftPackageManager,
 };
-use package_manager::PackageManager;
+use package_manager::{PackageManager, ResolvedCommand};
 
 mod command_resolver;
 use crate::command_resolver::{resolve, Resolution};
@@ -47,49 +47,59 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
     ]
 }
 
-/// Reports the resolution to stdout/stderr and returns the lookup name to
-/// pass to the package managers, plus whether `type` resolved to anything.
-fn report_resolution(command: &str, resolution: &Result<Resolution, String>) -> (String, bool) {
+/// Reports the resolution to stdout/stderr and returns the resolution to
+/// hand to the package managers, plus whether `type` resolved to anything.
+fn report_resolution(command: &str, resolution: Result<Resolution, String>) -> (Resolution, bool) {
     match resolution {
-        Ok(Resolution::Path(p)) => {
-            println!("{} resolves to {}", command, p);
-            (command.to_string(), true)
+        Ok(r @ Resolution::Path(_)) => {
+            if let Resolution::Path(p) = &r {
+                println!("{} resolves to {}", command, p);
+            }
+            (r, true)
         }
-        Ok(Resolution::Alias(target)) => {
-            println!("{} is an alias for {}", command, target);
-            (target.clone(), true)
+        Ok(r @ Resolution::Alias(_)) => {
+            if let Resolution::Alias(target) = &r {
+                println!("{} is an alias for {}", command, target);
+            }
+            (r, true)
         }
         Ok(Resolution::Function) => {
             println!("{} is a shell function", command);
-            (command.to_string(), true)
+            (Resolution::Function, true)
         }
         Ok(Resolution::Builtin) => {
             println!("{} is a shell builtin", command);
-            (command.to_string(), true)
+            (Resolution::Builtin, true)
         }
         Ok(Resolution::Keyword) => {
             println!("{} is a shell reserved word", command);
-            (command.to_string(), true)
+            (Resolution::Keyword, true)
         }
-        Ok(Resolution::NotFound) => (command.to_string(), false),
+        Ok(Resolution::NotFound) => (Resolution::NotFound, false),
         Err(e) => {
             eprintln!("type resolver error: {}", e);
-            (command.to_string(), false)
+            (Resolution::NotFound, false)
         }
     }
 }
 
 async fn find_installers(
     package_managers: Vec<Box<dyn PackageManager + Send>>,
-    lookup: &str,
+    command: &str,
+    resolution: &Resolution,
 ) -> Vec<String> {
     let tasks = package_managers.into_iter().map(|manager| {
-        let lookup = lookup.to_string();
+        let command = command.to_string();
+        let resolution = resolution.clone();
         task::spawn(async move {
             if !manager.is_installed() {
                 return None;
             }
-            match manager.is_command_installed(&lookup) {
+            let cmd = ResolvedCommand {
+                command: &command,
+                resolution: &resolution,
+            };
+            match manager.is_command_installed(&cmd) {
                 Ok(true) => Some(manager.name().to_string()),
                 Ok(false) => None,
                 Err(e) => {
@@ -113,10 +123,14 @@ async fn main() {
     let command = &args.command;
 
     let resolution = resolve(command);
-    let (lookup, type_found) = report_resolution(command, &resolution);
+    let (resolution, type_found) = report_resolution(command, resolution);
 
-    let installers = find_installers(all_package_managers(), &lookup).await;
+    let installers = find_installers(all_package_managers(), command, &resolution).await;
 
+    let lookup = match &resolution {
+        Resolution::Alias(target) => target.as_str(),
+        _ => command.as_str(),
+    };
     for manager_name in &installers {
         println!("{} installed by {}", lookup, manager_name);
     }

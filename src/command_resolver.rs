@@ -1,6 +1,7 @@
 use std::env;
 use std::process::Command;
 
+#[derive(Clone)]
 pub enum Resolution {
     Path(String),
     Alias(String),

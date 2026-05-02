@@ -1,4 +1,7 @@
-use crate::{command_resolver::command_exists, package_manager::PackageManager};
+use crate::{
+    command_resolver::command_exists,
+    package_manager::{PackageManager, ResolvedCommand},
+};
 
 pub struct CargoPackageManager;
 
@@ -11,7 +14,8 @@ impl PackageManager for CargoPackageManager {
         command_exists("npm")
     }
 
-    fn is_command_installed(&self, command: &str) -> Result<bool, String> {
+    fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
+        let name = cmd.lookup_name();
         let cargo_output = std::process::Command::new("cargo")
             .arg("install")
             .arg("--list")
@@ -20,12 +24,12 @@ impl PackageManager for CargoPackageManager {
 
         if cargo_output.status.success() {
             let output_str = String::from_utf8_lossy(&cargo_output.stdout);
-            if output_str.lines().any(|line| line.starts_with(command)) {
+            if output_str.lines().any(|line| line.starts_with(name)) {
                 return Ok(true);
             }
             return Ok(false);
         }
 
-        Err(format!("Failed to query cargo for command {}", command))
+        Err(format!("Failed to query cargo for command {}", name))
     }
 }
