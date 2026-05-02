@@ -42,16 +42,29 @@ cargo install --git https://github.com/danilofuchs/how.git
 ## Supported package managers
 
 - `apt`
+- `dnf` / `rpm` (Fedora, RHEL)
+- `pacman` (Arch)
 - Homebrew / Linuxbrew
-- `npm -g`
-- `pip` and `pip3`
+- MacPorts
 - `snap`
   <!-- - `flatpak` -->
+- `npm -g`
+- `pnpm -g`
+- `yarn global`
+- `bun`
+- `pip` and `pip3`
+- `pipx`
+- `uv tool`
+- `gem`
 - `cargo`
+- `go install`
   <!-- - Bash aliases -->
   <!-- - Zsh aliases -->
 - asdf
+- mise
 - nvm
+- pyenv
+- rbenv
 
 ## Contributing
 

@@ -3,17 +3,35 @@ mod package_managers {
     pub mod apt;
     pub mod asdf;
     pub mod brew;
+    pub mod bun;
     pub mod cargo;
+    pub mod dnf;
+    pub mod gem;
+    pub mod go;
+    pub mod macports;
+    pub mod mise;
     pub mod npm;
     pub mod nvm;
+    pub mod pacman;
     pub mod pip;
     pub mod pip3;
+    pub mod pipx;
+    pub mod pnpm;
+    pub mod pyenv;
+    pub mod rbenv;
     pub mod snapcraft;
+    pub mod uv;
+    pub mod yarn;
 }
 use crate::package_managers::{
     apt::AptPackageManager, asdf::AsdfPackageManager, brew::BrewPackageManager,
-    cargo::CargoPackageManager, npm::NpmPackageManager, nvm::NvmPackageManager,
-    pip::PipPackageManager, pip3::Pip3PackageManager, snapcraft::SnapCraftPackageManager,
+    bun::BunPackageManager, cargo::CargoPackageManager, dnf::DnfPackageManager,
+    gem::GemPackageManager, go::GoPackageManager, macports::MacPortsPackageManager,
+    mise::MisePackageManager, npm::NpmPackageManager, nvm::NvmPackageManager,
+    pacman::PacmanPackageManager, pip::PipPackageManager, pip3::Pip3PackageManager,
+    pipx::PipxPackageManager, pnpm::PnpmPackageManager, pyenv::PyenvPackageManager,
+    rbenv::RbenvPackageManager, snapcraft::SnapCraftPackageManager, uv::UvPackageManager,
+    yarn::YarnPackageManager,
 };
 use package_manager::{PackageManager, ResolvedCommand};
 
@@ -45,6 +63,19 @@ fn all_package_managers() -> Vec<Box<dyn PackageManager + Send>> {
         Box::new(PipPackageManager),
         Box::new(Pip3PackageManager),
         Box::new(AsdfPackageManager),
+        Box::new(PnpmPackageManager),
+        Box::new(YarnPackageManager),
+        Box::new(BunPackageManager),
+        Box::new(GemPackageManager),
+        Box::new(GoPackageManager),
+        Box::new(PipxPackageManager),
+        Box::new(UvPackageManager),
+        Box::new(MacPortsPackageManager),
+        Box::new(DnfPackageManager),
+        Box::new(PacmanPackageManager),
+        Box::new(MisePackageManager),
+        Box::new(PyenvPackageManager),
+        Box::new(RbenvPackageManager),
         // TODO: Add other package managers here
     ]
 }

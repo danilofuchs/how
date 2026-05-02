@@ -11,7 +11,7 @@ impl PackageManager for CargoPackageManager {
     }
 
     fn is_installed(&self) -> bool {
-        command_exists("npm")
+        command_exists("cargo")
     }
 
     fn is_command_installed(&self, cmd: &ResolvedCommand) -> Result<bool, String> {
